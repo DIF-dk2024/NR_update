@@ -151,3 +151,12 @@ body{
   background: rgba(11,12,15,.55);
 }
 .footer__row{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.link{
+  color: var(--text);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,159,10,.45);
+}
+.link:hover{
+  border-bottom-color: rgba(255,159,10,.9);
+}
+
