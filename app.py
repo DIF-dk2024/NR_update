@@ -12,6 +12,9 @@ from werkzeug.utils import secure_filename
 from filelock import FileLock
 
 
+# -----------------------------
+# Config
+# -----------------------------
 DEFAULT_DATA_DIR = "/var/data"
 DEFAULT_UPLOADS_DIR = "/var/data/uploads"
 
@@ -20,7 +23,7 @@ ALLOWED_EXTENSIONS = {
     "jpg", "jpeg", "png", "gif", "webp",
     # videos
     "mp4", "webm", "mov",
-    # docs / archives (download-only)
+    # documents / archives (download-only)
     "pdf", "txt", "csv", "zip", "7z", "rar",
     "doc", "docx", "xls", "xlsx", "ppt", "pptx",
 }
@@ -34,8 +37,8 @@ def create_app() -> Flask:
     app.config["DATA_DIR"] = os.environ.get("DATA_DIR", DEFAULT_DATA_DIR)
     app.config["UPLOADS_DIR"] = os.environ.get("UPLOADS_DIR", DEFAULT_UPLOADS_DIR)
 
-    # лимит запроса (байты). Пример для ~30MB: 31457280
-    app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", str(120 * 1024 * 1024)))  # 120MB
+    # Upload limit (bytes). Example for ~30MB: 31457280
+    app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", str(120 * 1024 * 1024)))  # 120 MB
 
     ensure_dirs(app)
 
@@ -50,15 +53,17 @@ def create_app() -> Flask:
         safe_card = sanitize_id(card_id)
         if not safe_card:
             abort(404)
+
         folder = os.path.join(app.config["UPLOADS_DIR"], safe_card)
         return send_from_directory(folder, filename, as_attachment=False)
 
-    # ---------- Admin auth ----------
+    # -----------------------------
+    # Admin auth
+    # -----------------------------
     @app.route("/admin/login", methods=["GET", "POST"])
     def admin_login():
         if request.method == "POST":
             password = request.form.get("password", "")
-
             if not app.config["ADMIN_PASSWORD"]:
                 flash("ADMIN_PASSWORD не задан. Укажи переменную окружения.", "error")
                 return redirect(url_for("admin_login"))
@@ -98,22 +103,20 @@ def create_app() -> Flask:
                 flash("Заполни поле «Название».", "error")
                 return redirect(url_for("admin_new"))
 
-            card_id = uuid.uuid4().hex[:10]
+            card_id = uuid.uuid4().hex[:10]  # short id
             created_at = dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
+            saved_files = []
             card_folder = os.path.join(app.config["UPLOADS_DIR"], card_id)
             os.makedirs(card_folder, exist_ok=True)
 
-            saved_files = []
             for f in files:
                 if not f or not getattr(f, "filename", ""):
                     continue
-
                 original = f.filename
                 filename = secure_filename(original)
                 if not filename:
                     continue
-
                 if not allowed_file(filename):
                     flash(f"Файл «{original}» отклонён: неподдерживаемое расширение.", "error")
                     continue
@@ -125,7 +128,7 @@ def create_app() -> Flask:
                 saved_files.append({
                     "name": filename,
                     "url": url_for("uploaded_file", card_id=card_id, filename=filename),
-                    "ext": filename.rsplit(".", 1)[-1].lower(),
+                    "ext": filename.rsplit(".", 1)[-1].lower()
                 })
 
             card = {
@@ -145,7 +148,9 @@ def create_app() -> Flask:
     return app
 
 
-# ---------- Helpers ----------
+# -----------------------------
+# Helpers
+# -----------------------------
 def ensure_dirs(app: Flask) -> None:
     os.makedirs(app.config["DATA_DIR"], exist_ok=True)
     os.makedirs(app.config["UPLOADS_DIR"], exist_ok=True)
@@ -178,12 +183,12 @@ def unique_filename(folder: str, filename: str) -> str:
         i += 1
     return candidate
 
-def cards_path(app: Flask) -> str:
-    # фактически это JSONL (по строке JSON на карточку), но файл называем submissions.csv для совместимости привычки
+def cards_csv_path(app: Flask) -> str:
+    # фактически JSONL (по строке JSON на карточку), оставляем имя submissions.csv как привычное
     return os.path.join(app.config["DATA_DIR"], "submissions.csv")
 
 def load_cards(app: Flask):
-    path = cards_path(app)
+    path = cards_csv_path(app)
     if not os.path.exists(path):
         return []
     cards = []
@@ -201,7 +206,7 @@ def load_cards(app: Flask):
     return cards
 
 def append_card(app: Flask, card: dict) -> None:
-    path = cards_path(app)
+    path = cards_csv_path(app)
     lock = FileLock(path + ".lock")
     with lock:
         with open(path, "a", encoding="utf-8") as f:
