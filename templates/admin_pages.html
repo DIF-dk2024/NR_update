@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="section">
+    <h1 class="h1">Админ • Страницы</h1>
+    <p class="muted">Редактируй 3 кнопки/страницы.</p>
+  </section>
+
+  <div class="grid">
+    {% for p in pages %}
+      <article class="card">
+        <div class="card__top">
+          <div>
+            <div class="card__title">{{ p.title }}</div>
+            <div class="muted small">/p/{{ p.slug }}</div>
+          </div>
+          <a class="btn btn-small" href="{{ url_for('admin_page_edit', slug=p.slug) }}">Редактировать</a>
+        </div>
+
+        {% if p.link_url %}
+          <div class="muted small" style="margin-top:10px">{{ p.link_url }}</div>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+{% endblock %}

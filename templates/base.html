@@ -3,27 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Статичтика Квадратных Метров</title>
+  <title>Рынок Квартир Астаны</title>
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
   <header class="header">
     <div class="container header__row">
-      <div class="brand">
+      <a class="brand" href="{{ url_for('index') }}">
         <img class="brand__logo" src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
-        <div>
-          <div class="brand__title">Статичтика Квадратных Метров</div>
-          <div class="brand__subtitle">
-            Материалы курса • <a class="link" href="https://t.me/numresearch" target="_blank" rel="noopener">t.me/numresearch</a>
-          </div>
-        </div>
-      </div>
+        <div class="brand__title">Рынок Квартир Астаны</div>
+      </a>
 
       <nav class="nav">
         {% if is_admin %}
-          <a class="btn btn-primary" href="{{ url_for('admin_new') }}">Новая карточка</a>
-          <a class="btn" href="{{ url_for('admin_logout') }}">Выйти</a>
+          <a class="btn btn-small" href="{{ url_for('admin_pages') }}">Админ</a>
+          <a class="btn btn-small" href="{{ url_for('admin_logout') }}">Выйти</a>
         {% endif %}
       </nav>
     </div>

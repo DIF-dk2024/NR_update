@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="section">
+    <div class="pagehead">
+      <div>
+        <h1 class="h1">{{ page.title }}</h1>
+        {% if page.updated_at %}
+          <div class="muted small">Обновлено: {{ page.updated_at }}</div>
+        {% endif %}
+      </div>
+
+      {% if is_admin %}
+        <a class="btn btn-small" href="{{ url_for('admin_page_edit', slug=page.slug) }}">Редактировать</a>
+      {% endif %}
+    </div>
+
+    {% if page.description %}
+      <div class="card__desc">{{ page.description }}</div>
+    {% endif %}
+
+    {% if page.link_url %}
+      <div class="links">
+        <a class="btn" href="{{ page.link_url }}" target="_blank" rel="noopener">Открыть ссылку</a>
+        <div class="muted small">{{ page.link_url }}</div>
+      </div>
+    {% endif %}
+  </section>
+
+  {% if page.files and page.files|length > 0 %}
+    <div class="attachments">
+      {% for f in page.files %}
+        {% set ext = f.ext|lower %}
+        {% if ext in ["jpg","jpeg","png","gif","webp"] %}
+          <a class="att att-img" href="{{ f.url }}" target="_blank" rel="noopener">
+            <img src="{{ f.url }}" alt="{{ f.name }}">
+          </a>
+        {% elif ext in ["mp4","webm","mov"] %}
+          <div class="att att-video">
+            <video controls preload="metadata" src="{{ f.url }}"></video>
+            <div class="att__name">{{ f.name }}</div>
+          </div>
+        {% else %}
+          <a class="att att-file" href="{{ f.url }}" target="_blank" rel="noopener">
+            <span class="att__icon">⬇</span>
+            <span class="att__name">{{ f.name }}</span>
+          </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">Пока нет материалов.</div>
+  {% endif %}
+{% endblock %}
