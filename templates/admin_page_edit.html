@@ -21,7 +21,26 @@
     <input class="input" type="url" name="link_url" value="{{ page.link_url or '' }}" placeholder="https://...">
 
     <label class="label">Добавить файлы / видео (можно несколько)</label>
-    <input class="input" type="file" name="files" multiple>
+<div id="file-inputs" class="fileinputs">
+  <input class="input" type="file" name="files" multiple>
+</div>
+<div class="row">
+  <button class="btn btn-small" type="button" onclick="addFileInput()">+ Добавить ещё файл</button>
+  <div class="muted small">Можно выбрать несколько файлов сразу (Ctrl/Shift), или добавить ещё поля.</div>
+</div>
+
+<script>
+  function addFileInput() {
+    const wrap = document.getElementById('file-inputs');
+    if (!wrap) return;
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.name = 'files';
+    inp.className = 'input';
+    // don't force multiple on extra fields; one per field is OK, backend uses getlist()
+    wrap.appendChild(inp);
+  }
+</script>
 
     <div class="row">
       <button class="btn btn-primary" type="submit">Сохранить</button>
