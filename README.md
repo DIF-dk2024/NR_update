@@ -38,7 +38,7 @@ python app.py
 4) В Environment добавь `SECRET_KEY` и `ADMIN_PASSWORD`
 
 Админка:
-- `/admin/login` — вход
+- `/karna1203-admin-login` — вход
 - `/admin/new` — новая карточка
 
 

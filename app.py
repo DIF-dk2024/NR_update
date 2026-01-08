@@ -61,7 +61,7 @@ def create_app() -> Flask:
     # -----------------------------
     # Admin auth
     # -----------------------------
-    @app.route("/admin/login", methods=["GET", "POST"])
+    @app.route("/karna1203-admin-login", methods=["GET", "POST"])
     def admin_login():
         if request.method == "POST":
             password = request.form.get("password", "")
