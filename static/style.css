@@ -158,3 +158,6 @@ body{
   display:grid;
   gap:8px;
 }
+
+
+.fileinputs{display:grid;gap:10px}
