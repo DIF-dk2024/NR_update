@@ -2,7 +2,7 @@
 {% block content %}
   <section class="section">
     <h1 class="h1">Редактировать карточку</h1>
-    <p class="muted">Изменяй название/описание, добавляй файлы и удаляй вложения.</p>
+    <p class="muted">Меняй название/описание, добавляй файлы и удаляй вложения.</p>
   </section>
 
   <form class="form" method="post" enctype="multipart/form-data">
@@ -11,6 +11,8 @@
 
     <label class="label">Описание</label>
     <textarea class="textarea" name="description" rows="6" maxlength="2000">{{ card.description }}</textarea>
+
+    <label class="labelейka" style="display:none"></label>
 
     <label class="label">Добавить файлы / видео (можно несколько)</label>
     <input class="input" type="file" name="files" multiple>
@@ -30,31 +32,28 @@
     <div class="attachments">
       {% for f in card.files %}
         {% set ext = f.ext|lower %}
-        <div class="att att-manage">
-          <div class="att-manage__preview">
-            {% if ext in ["jpg","jpeg","png","gif","webp"] %}
-              <a href="{{ f.url }}" target="_blank" rel="noopener">
-                <img src="{{ f.url }}" alt="{{ f.name }}">
-              </a>
-            {% elif ext in ["mp4","webm","mov"] %}
+        <div class="att">
+          {% if ext in ["jpg","jpeg","png","gif","webp"] %}
+            <a class="att att-img" href="{{ f.url }}" target="_blank" rel="noopener">
+              <img src="{{ f.url }}" alt="{{ f.name }}">
+            </a>
+          {% elif ext in ["mp4","webm","mov"] %}
+            <div class="att att-video">
               <video controls preload="metadata" src="{{ f.url }}"></video>
-            {% else %}
-              <a class="att-file" href="{{ f.url }}" target="_blank" rel="noopener">
-                <span class="att__icon">⬇</span>
-                <span class="att__name">{{ f.name }}</span>
-              </a>
-            {% endif %}
-          </div>
+              <div class="att__name">{{ f.name }}</div>
+            </div>
+          {% else %}
+            <a class="att att-file" href="{{ f.url }}" target="_blank" rel="noopener">
+              <span class="att__icon">⬇</span>
+              <span class="att__name">{{ f.name }}</span>
+            </a>
+          {% endif %}
 
-          <div class="att-manage__bar">
-            <div class="att__name">{{ f.name }}</div>
-
-            <form method="post" action="{{ url_for('admin_delete_file', card_id=card.id) }}"
-                  onsubmit="return confirm('Удалить этот файл?');">
-              <input type="hidden" name="filename" value="{{ f.name }}">
-              <button class="btn btn-danger btn-small" type="submit">Удалить файл</button>
-            </form>
-          </div>
+          <form style="padding:10px" method="post" action="{{ url_for('admin_delete_file', card_id=card.id) }}"
+                onsubmit="return confirm('Удалить этот файл?');">
+            <input type="hidden" name="filename" value="{{ f.name }}">
+            <button class="btn btn-danger btn-small" type="submit">Удалить файл</button>
+          </form>
         </div>
       {% endfor %}
     </div>

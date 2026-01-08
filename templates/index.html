@@ -6,9 +6,7 @@
   </section>
 
   {% if not cards %}
-    <div class="empty">
-      Пока нет карточек.
-    </div>
+    <div class="empty">Пока нет карточек.</div>
   {% endif %}
 
   <div class="grid">
@@ -23,9 +21,10 @@
           {% if is_admin %}
             <div class="admin-actions">
               <a class="btn btn-small" href="{{ url_for('admin_edit', card_id=c.id) }}">Редактировать</a>
+
               <form method="post" action="{{ url_for('admin_delete', card_id=c.id) }}"
-                  onsubmit="return confirm('Удалить карточку навсегда?');">
-              <button class="btn btn-danger" type="submit">Удалить</button>
+                    onsubmit="return confirm('Удалить карточку навсегда?');">
+                <button class="btn btn-danger btn-small" type="submit">Удалить</button>
               </form>
             </div>
           {% endif %}
