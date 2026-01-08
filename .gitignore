@@ -1,13 +1,12 @@
 .env
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 .venv/
 venv/
 .idea/
 .vscode/
 .DS_Store
-# keep data out of git
+
+# local data
 submissions.csv
 uploads/
