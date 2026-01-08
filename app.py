@@ -1,7 +1,6 @@
+\
 import os
 import json
-import uuid
-import shutil
 import datetime as dt
 from functools import wraps
 
@@ -18,6 +17,13 @@ DEFAULT_UPLOADS_DIR = "/var/data/uploads"
 # секретный логин
 SECRET_LOGIN_PATH = "/karna1203-admin-login"
 
+# 3 фиксированных страницы (карточки)
+PAGES = [
+    {"slug": "telegram",  "id": "a1b2c3d4e5", "title": "Подписаться в Telegram", "link_url": "https://t.me/numresearch"},
+    {"slug": "analytics", "id": "b2c3d4e5f6", "title": "Эксклюзивная Аналитика", "link_url": ""},
+    {"slug": "course",    "id": "c3d4e5f607", "title": "Купить Курс", "link_url": ""},
+]
+
 ALLOWED_EXTENSIONS = {
     # images
     "jpg", "jpeg", "png", "gif", "webp",
@@ -27,6 +33,9 @@ ALLOWED_EXTENSIONS = {
     "pdf", "txt", "csv", "zip", "7z", "rar",
     "doc", "docx", "xls", "xlsx", "ppt", "pptx",
 }
+
+def utc_now() -> str:
+    return dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
 def create_app() -> Flask:
     app = Flask(__name__)
@@ -40,22 +49,29 @@ def create_app() -> Flask:
     app.config["MAX_CONTENT_LENGTH"] = int(os.environ.get("MAX_CONTENT_LENGTH", str(120 * 1024 * 1024)))  # 120MB
 
     ensure_dirs(app)
+    ensure_pages_exist(app)
 
     # -----------------------------
     # Public
     # -----------------------------
     @app.route("/")
     def index():
-        cards = load_cards(app)
-        cards.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-        return render_template("index.html", cards=cards, is_admin=is_admin())
+        return render_template("index.html", is_admin=is_admin(), pages=PAGES)
 
-    @app.route("/uploads/<card_id>/<path:filename>")
-    def uploaded_file(card_id: str, filename: str):
-        safe_card = sanitize_id(card_id)
-        if not safe_card:
+    @app.route("/p/<slug>")
+    def page_view(slug: str):
+        slug = (slug or "").strip().lower()
+        page = get_page(app, slug)
+        if not page:
             abort(404)
-        folder = os.path.join(app.config["UPLOADS_DIR"], safe_card)
+        return render_template("page.html", is_admin=is_admin(), page=page)
+
+    @app.route("/uploads/<page_id>/<path:filename>")
+    def uploaded_file(page_id: str, filename: str):
+        safe_id = sanitize_hex_id(page_id)
+        if not safe_id:
+            abort(404)
+        folder = os.path.join(app.config["UPLOADS_DIR"], safe_id)
         return send_from_directory(folder, filename, as_attachment=False)
 
     # -----------------------------
@@ -73,7 +89,7 @@ def create_app() -> Flask:
             if password == app.config["ADMIN_PASSWORD"]:
                 session["is_admin"] = True
                 flash("Вход выполнен.", "ok")
-                return redirect(url_for("admin_new"))
+                return redirect(url_for("admin_pages"))
 
             flash("Неверный пароль.", "error")
 
@@ -94,26 +110,47 @@ def create_app() -> Flask:
         return wrapper
 
     # -----------------------------
-    # Admin: create
+    # Admin: pages list
     # -----------------------------
-    @app.route("/admin/new", methods=["GET", "POST"])
+    @app.route("/admin/pages")
     @admin_required
-    def admin_new():
+    def admin_pages():
+        pages = []
+        for p in PAGES:
+            obj = get_page(app, p["slug"])
+            if obj:
+                pages.append(obj)
+        return render_template("admin_pages.html", is_admin=is_admin(), pages=pages)
+
+    # -----------------------------
+    # Admin: edit page
+    # -----------------------------
+    @app.route("/admin/page/<slug>", methods=["GET", "POST"])
+    @admin_required
+    def admin_page_edit(slug: str):
+        slug = (slug or "").strip().lower()
+        page = get_page(app, slug)
+        if not page:
+            abort(404)
+
         if request.method == "POST":
             title = (request.form.get("title") or "").strip()
             description = (request.form.get("description") or "").strip()
+            link_url = (request.form.get("link_url") or "").strip()
             files = request.files.getlist("files")
 
             if not title:
                 flash("Заполни поле «Название».", "error")
-                return redirect(url_for("admin_new"))
+                return redirect(url_for("admin_page_edit", slug=slug))
 
-            card_id = uuid.uuid4().hex[:10]
-            created_at = dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+            page["title"] = title
+            page["description"] = description
+            page["link_url"] = link_url
+            page["updated_at"] = utc_now()
 
-            saved_files = []
-            card_folder = os.path.join(app.config["UPLOADS_DIR"], card_id)
-            os.makedirs(card_folder, exist_ok=True)
+            saved_files = page.get("files") or []
+            page_folder = os.path.join(app.config["UPLOADS_DIR"], page["id"])
+            os.makedirs(page_folder, exist_ok=True)
 
             for f in files:
                 if not f or not getattr(f, "filename", ""):
@@ -126,134 +163,46 @@ def create_app() -> Flask:
                     flash(f"Файл «{original}» отклонён: неподдерживаемое расширение.", "error")
                     continue
 
-                filename = unique_filename(card_folder, filename)
-                save_path = os.path.join(card_folder, filename)
+                filename = unique_filename(page_folder, filename)
+                save_path = os.path.join(page_folder, filename)
                 f.save(save_path)
 
                 saved_files.append({
                     "name": filename,
-                    "url": url_for("uploaded_file", card_id=card_id, filename=filename),
+                    "url": url_for("uploaded_file", page_id=page["id"], filename=filename),
                     "ext": filename.rsplit(".", 1)[-1].lower()
                 })
 
-            card = {
-                "id": card_id,
-                "created_at": created_at,
-                "updated_at": created_at,
-                "title": title,
-                "description": description,
-                "files": saved_files,
-            }
+            page["files"] = saved_files
 
-            append_card(app, card)
-            flash("Карточка опубликована.", "ok")
-            return redirect(url_for("index"))
-
-        return render_template("admin_new.html", is_admin=is_admin())
-
-    # -----------------------------
-    # Admin: edit
-    # -----------------------------
-    @app.route("/admin/edit/<card_id>", methods=["GET", "POST"])
-    @admin_required
-    def admin_edit(card_id: str):
-        safe = sanitize_id(card_id)
-        if not safe:
-            abort(404)
-
-        card = get_card(app, safe)
-        if not card:
-            abort(404)
-
-        if request.method == "POST":
-            title = (request.form.get("title") or "").strip()
-            description = (request.form.get("description") or "").strip()
-            files = request.files.getlist("files")
-
-            if not title:
-                flash("Заполни поле «Название».", "error")
-                return redirect(url_for("admin_edit", card_id=safe))
-
-            card["title"] = title
-            card["description"] = description
-            card["updated_at"] = dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
-
-            saved_files = card.get("files") or []
-            card_folder = os.path.join(app.config["UPLOADS_DIR"], safe)
-            os.makedirs(card_folder, exist_ok=True)
-
-            for f in files:
-                if not f or not getattr(f, "filename", ""):
-                    continue
-                original = f.filename
-                filename = secure_filename(original)
-                if not filename:
-                    continue
-                if not allowed_file(filename):
-                    flash(f"Файл «{original}» отклонён: неподдерживаемое расширение.", "error")
-                    continue
-
-                filename = unique_filename(card_folder, filename)
-                save_path = os.path.join(card_folder, filename)
-                f.save(save_path)
-
-                saved_files.append({
-                    "name": filename,
-                    "url": url_for("uploaded_file", card_id=safe, filename=filename),
-                    "ext": filename.rsplit(".", 1)[-1].lower()
-                })
-
-            card["files"] = saved_files
-
-            if update_card(app, safe, card):
-                flash("Карточка обновлена.", "ok")
+            if upsert_page(app, slug, page):
+                flash("Страница обновлена.", "ok")
             else:
-                flash("Не удалось обновить карточку.", "error")
+                flash("Не удалось обновить страницу.", "error")
 
-            return redirect(url_for("admin_edit", card_id=safe))
+            return redirect(url_for("admin_page_edit", slug=slug))
 
-        return render_template("admin_edit.html", card=card, is_admin=is_admin())
+        return render_template("admin_page_edit.html", is_admin=is_admin(), page=page)
 
     # -----------------------------
-    # Admin: delete file (keep card)
+    # Admin: delete file (keep page)
     # -----------------------------
-    @app.post("/admin/delete-file/<card_id>")
+    @app.post("/admin/delete-file/<page_id>")
     @admin_required
-    def admin_delete_file(card_id: str):
-        safe = sanitize_id(card_id)
-        if not safe:
+    def admin_delete_file(page_id: str):
+        safe_id = sanitize_hex_id(page_id)
+        if not safe_id:
             abort(404)
 
         filename = request.form.get("filename", "")
-        if not filename:
-            flash("Файл не указан.", "error")
-            return redirect(url_for("admin_edit", card_id=safe))
+        slug = request.form.get("slug", "")
+        if not filename or not slug:
+            flash("Некорректный запрос.", "error")
+            return redirect(url_for("admin_pages"))
 
-        ok = delete_file_from_card(app, safe, filename)
+        ok = delete_file_from_page(app, slug, safe_id, filename)
         flash("Файл удалён." if ok else "Не удалось удалить файл.", "ok" if ok else "error")
-        return redirect(url_for("admin_edit", card_id=safe))
-
-    # -----------------------------
-    # Admin: delete card
-    # -----------------------------
-    @app.post("/admin/delete/<card_id>")
-    @admin_required
-    def admin_delete(card_id: str):
-        safe = sanitize_id(card_id)
-        if not safe:
-            abort(404)
-
-        deleted = delete_card(app, safe)
-        if not deleted:
-            flash("Карточка не найдена.", "error")
-            return redirect(url_for("index"))
-
-        folder = os.path.join(app.config["UPLOADS_DIR"], safe)
-        if os.path.isdir(folder):
-            shutil.rmtree(folder, ignore_errors=True)
-
-        flash("Карточка удалена.", "ok")
-        return redirect(url_for("index"))
+        return redirect(url_for("admin_page_edit", slug=slug))
 
     return app
 
@@ -264,7 +213,7 @@ def ensure_dirs(app: Flask) -> None:
     os.makedirs(app.config["DATA_DIR"], exist_ok=True)
     os.makedirs(app.config["UPLOADS_DIR"], exist_ok=True)
 
-def sanitize_id(value: str) -> str:
+def sanitize_hex_id(value: str) -> str:
     if not value:
         return ""
     value = value.lower()
@@ -292,15 +241,15 @@ def unique_filename(folder: str, filename: str) -> str:
         i += 1
     return candidate
 
-def cards_path(app: Flask) -> str:
-    # JSONL in a file named submissions.csv (historical name)
+def data_path(app: Flask) -> str:
+    # JSONL (historic name submissions.csv)
     return os.path.join(app.config["DATA_DIR"], "submissions.csv")
 
-def load_cards(app: Flask):
-    path = cards_path(app)
+def load_all(app: Flask):
+    path = data_path(app)
     if not os.path.exists(path):
         return []
-    cards = []
+    rows = []
     lock = FileLock(path + ".lock")
     with lock:
         with open(path, "r", encoding="utf-8") as f:
@@ -309,107 +258,91 @@ def load_cards(app: Flask):
                 if not line:
                     continue
                 try:
-                    cards.append(json.loads(line))
+                    rows.append(json.loads(line))
                 except Exception:
                     continue
-    return cards
+    return rows
 
-def append_card(app: Flask, card: dict) -> None:
-    path = cards_path(app)
+def write_all(app: Flask, rows):
+    path = data_path(app)
     lock = FileLock(path + ".lock")
     with lock:
-        with open(path, "a", encoding="utf-8") as f:
-            f.write(json.dumps(card, ensure_ascii=False) + "\n")
+        with open(path, "w", encoding="utf-8") as f:
+            for obj in rows:
+                f.write(json.dumps(obj, ensure_ascii=False) + "\n")
 
-def get_card(app: Flask, card_id: str):
-    for c in load_cards(app):
-        if c.get("id") == card_id:
-            return c
+def ensure_pages_exist(app: Flask) -> None:
+    rows = load_all(app)
+    existing_slugs = {r.get("slug") for r in rows if r.get("kind") == "page" and r.get("slug")}
+    changed = False
+
+    for p in PAGES:
+        if p["slug"] in existing_slugs:
+            continue
+
+        rows.append({
+            "kind": "page",
+            "slug": p["slug"],
+            "id": p["id"],
+            "created_at": utc_now(),
+            "updated_at": utc_now(),
+            "title": p["title"],
+            "description": "",
+            "link_url": p.get("link_url", ""),
+            "files": [],
+        })
+        changed = True
+
+    if changed:
+        write_all(app, rows)
+
+def get_page(app: Flask, slug: str):
+    slug = (slug or "").strip().lower()
+    for r in load_all(app):
+        if r.get("kind") == "page" and r.get("slug") == slug:
+            # refresh URLs for files (in case host changes)
+            files = r.get("files") or []
+            fixed = []
+            for f in files:
+                name = f.get("name")
+                if not name:
+                    continue
+                fixed.append({
+                    "name": name,
+                    "ext": (name.rsplit(".", 1)[-1].lower() if "." in name else ""),
+                    "url": url_for("uploaded_file", page_id=r.get("id"), filename=name)
+                })
+            r["files"] = fixed
+            return r
     return None
 
-def update_card(app: Flask, card_id: str, new_card: dict) -> bool:
-    path = cards_path(app)
-    if not os.path.exists(path):
-        return False
+def upsert_page(app: Flask, slug: str, new_page: dict) -> bool:
+    rows = load_all(app)
+    for i, r in enumerate(rows):
+        if r.get("kind") == "page" and r.get("slug") == slug:
+            rows[i] = new_page
+            write_all(app, rows)
+            return True
+    rows.append(new_page)
+    write_all(app, rows)
+    return True
 
-    lock = FileLock(path + ".lock")
-    updated = False
-    kept = []
-
-    with lock:
-        with open(path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                except Exception:
-                    continue
-
-                if obj.get("id") == card_id:
-                    kept.append(json.dumps(new_card, ensure_ascii=False))
-                    updated = True
-                else:
-                    kept.append(json.dumps(obj, ensure_ascii=False))
-
-        with open(path, "w", encoding="utf-8") as f:
-            for l in kept:
-                f.write(l + "\n")
-
-    return updated
-
-def delete_card(app: Flask, card_id: str):
-    path = cards_path(app)
-    if not os.path.exists(path):
-        return None
-
-    lock = FileLock(path + ".lock")
-    deleted = None
-    kept = []
-
-    with lock:
-        with open(path, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    obj = json.loads(line)
-                except Exception:
-                    continue
-
-                if obj.get("id") == card_id:
-                    deleted = obj
-                    continue
-
-                kept.append(json.dumps(obj, ensure_ascii=False))
-
-        with open(path, "w", encoding="utf-8") as f:
-            for l in kept:
-                f.write(l + "\n")
-
-    return deleted
-
-def delete_file_from_card(app: Flask, card_id: str, filename: str) -> bool:
-    safe_id = sanitize_id(card_id)
-    if not safe_id:
-        return False
-
+def delete_file_from_page(app: Flask, slug: str, page_id: str, filename: str) -> bool:
+    slug = (slug or "").strip().lower()
     safe_name = secure_filename(filename)
     if not safe_name:
         return False
 
-    card = get_card(app, safe_id)
-    if not card:
+    page = get_page(app, slug)
+    if not page:
         return False
 
-    files = card.get("files") or []
+    files = page.get("files") or []
     new_files = [f for f in files if f.get("name") != safe_name]
     if len(new_files) == len(files):
         return False
 
-    folder = os.path.join(app.config["UPLOADS_DIR"], safe_id)
+    folder = os.path.join(app.config["UPLOADS_DIR"], page_id)
     path = os.path.join(folder, safe_name)
     if os.path.exists(path):
         try:
@@ -417,8 +350,9 @@ def delete_file_from_card(app: Flask, card_id: str, filename: str) -> bool:
         except Exception:
             pass
 
-    card["files"] = new_files
-    return update_card(app, safe_id, card)
+    page["files"] = new_files
+    page["updated_at"] = utc_now()
+    return upsert_page(app, slug, page)
 
 app = create_app()
 

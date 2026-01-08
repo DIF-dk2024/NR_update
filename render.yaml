@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: nr-update
+    name: astana-market-pages
     env: python
     plan: free
     buildCommand: pip install -r requirements.txt
