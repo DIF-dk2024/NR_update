@@ -3,59 +3,46 @@
   <section class="section">
     <div class="pagehead">
       <div>
-        <h1 class="h1">Редактировать</h1>
-        <div class="muted small">/p/{{ page.slug }}</div>
+        <h1 class="h1">Редактировать карточку</h1>
+        <div class="muted small">/c/{{ card.id }}</div>
       </div>
-      <a class="btn btn-small" href="{{ url_for('page_view', slug=page.slug) }}">Открыть</a>
+      <div class="row">
+        <a class="btn btn-small" href="{{ url_for('card_view', card_id=card.id) }}">Открыть</a>
+        <form method="post" action="{{ url_for('admin_delete_card', card_id=card.id) }}"
+              onsubmit="return confirm('Удалить карточку полностью?');">
+          <button class="btn btn-danger btn-small" type="submit">Удалить карточку</button>
+        </form>
+      </div>
     </div>
   </section>
 
   <form class="form" method="post" enctype="multipart/form-data">
     <label class="label">Название</label>
-    <input class="input" type="text" name="title" maxlength="120" value="{{ page.title }}" required>
+    <input class="input" type="text" name="title" maxlength="120" value="{{ card.title }}" required>
 
     <label class="label">Описание</label>
-    <textarea class="textarea" name="description" rows="6" maxlength="6000" placeholder="Текст/инструкции/описание">{{ page.description }}</textarea>
+    <textarea class="textarea" name="description" rows="6" maxlength="6000">{{ card.description }}</textarea>
 
     <label class="label">Ссылка (URL)</label>
-    <input class="input" type="text" name="link_url" value="{{ page.link_url or '' }}" placeholder="https://...">
+    <input class="input" type="text" name="link_url" value="{{ card.link_url or '' }}" placeholder="t.me/..., instagram.com/...">
 
     <label class="label">Добавить файлы / видео (можно несколько)</label>
-<div id="file-inputs" class="fileinputs">
-  <input class="input" type="file" name="files" multiple>
-</div>
-<div class="row">
-  <button class="btn btn-small" type="button" onclick="addFileInput()">+ Добавить ещё файл</button>
-  <div class="muted small">Можно выбрать несколько файлов сразу (Ctrl/Shift), или добавить ещё поля.</div>
-</div>
-
-<script>
-  function addFileInput() {
-    const wrap = document.getElementById('file-inputs');
-    if (!wrap) return;
-    const inp = document.createElement('input');
-    inp.type = 'file';
-    inp.name = 'files';
-    inp.className = 'input';
-    // don't force multiple on extra fields; one per field is OK, backend uses getlist()
-    wrap.appendChild(inp);
-  }
-</script>
+    <input class="input" type="file" name="files" multiple>
 
     <div class="row">
       <button class="btn btn-primary" type="submit">Сохранить</button>
-      <a class="btn" href="{{ url_for('admin_pages') }}">Назад</a>
+      <a class="btn" href="{{ url_for('admin_cards') }}">Назад</a>
     </div>
   </form>
 
-  {% if page.files and page.files|length > 0 %}
+  {% if card.files and card.files|length > 0 %}
     <section class="section">
       <h2 class="h2">Вложения</h2>
-      <p class="muted small">Удаление вложения не удаляет страницу — только файл.</p>
+      <p class="muted small">Удаление вложения не удаляет карточку — только файл.</p>
     </section>
 
     <div class="attachments">
-      {% for f in page.files %}
+      {% for f in card.files %}
         {% set ext = f.ext|lower %}
         <div class="att">
           {% if ext in ["jpg","jpeg","png","gif","webp"] %}
@@ -74,10 +61,9 @@
             </a>
           {% endif %}
 
-          <form class="att__del" method="post" action="{{ url_for('admin_delete_file', item_id=page.id) }}"
+          <form class="att__del" method="post" action="{{ url_for('admin_delete_card_file', card_id=card.id) }}"
                 onsubmit="return confirm('Удалить этот файл?');">
             <input type="hidden" name="filename" value="{{ f.name }}">
-            <input type="hidden" name="slug" value="{{ page.slug }}">
             <button class="btn btn-danger btn-small" type="submit">Удалить файл</button>
           </form>
         </div>

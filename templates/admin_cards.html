@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="section">
+    <div class="pagehead">
+      <div>
+        <h1 class="h1">Админ • Карточки</h1>
+        <div class="muted small">Создавай новые материалы и редактируй существующие.</div>
+      </div>
+      <a class="btn btn-primary btn-small" href="{{ url_for('admin_card_new') }}">+ Новая карточка</a>
+    </div>
+  </section>
+
+  {% if cards and cards|length > 0 %}
+    <div class="grid">
+      {% for c in cards %}
+        <article class="card">
+          <div class="card__top">
+            <div>
+              <div class="card__title">{{ c.title }}</div>
+              <div class="muted small">/c/{{ c.id }}</div>
+            </div>
+            <div class="row">
+              <a class="btn btn-small" href="{{ url_for('card_view', card_id=c.id) }}">Открыть</a>
+              <a class="btn btn-small" href="{{ url_for('admin_card_edit', card_id=c.id) }}">Редактировать</a>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">Пока нет карточек. Нажми «Новая карточка».</div>
+  {% endif %}
+{% endblock %}

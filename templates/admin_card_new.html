@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="section">
+    <h1 class="h1">Новая карточка</h1>
+    <p class="muted small">После создания ты сможешь редактировать и удалять вложения.</p>
+  </section>
+
+  <form class="form" method="post" enctype="multipart/form-data">
+    <label class="label">Название</label>
+    <input class="input" type="text" name="title" maxlength="120" required>
+
+    <label class="label">Описание</label>
+    <textarea class="textarea" name="description" rows="6" maxlength="6000"></textarea>
+
+    <label class="label">Ссылка (URL)</label>
+    <input class="input" type="text" name="link_url" placeholder="t.me/..., instagram.com/..., https://..., /cards">
+
+    <label class="label">Добавить файлы / видео (можно несколько)</label>
+    <input class="input" type="file" name="files" multiple>
+
+    <div class="row">
+      <button class="btn btn-primary" type="submit">Создать</button>
+      <a class="btn" href="{{ url_for('admin_cards') }}">Назад</a>
+    </div>
+  </form>
+{% endblock %}

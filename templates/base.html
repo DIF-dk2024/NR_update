@@ -17,9 +17,10 @@
 
       <nav class="nav">
         {% if is_admin %}
-          <a class="btn btn-small" href="{{ url_for('admin_pages') }}">Админ</a>
-          <a class="btn btn-small" href="{{ url_for('admin_logout') }}">Выйти</a>
-        {% endif %}
+  <a class="btn btn-small" href="{{ url_for('admin_pages') }}">Страницы</a>
+  <a class="btn btn-small" href="{{ url_for('admin_cards') }}">Карточки</a>
+  <a class="btn btn-small" href="{{ url_for('admin_logout') }}">Выйти</a>
+{% endif %}
       </nav>
     </div>
   </header>

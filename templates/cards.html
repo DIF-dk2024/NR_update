@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="section">
+    <div class="pagehead">
+      <div>
+        <h1 class="h1">Карточки</h1>
+        <div class="muted small">Публичный список материалов.</div>
+      </div>
+      {% if is_admin %}
+        <a class="btn btn-small" href="{{ url_for('admin_cards') }}">Управлять</a>
+      {% endif %}
+    </div>
+  </section>
+
+  {% if cards and cards|length > 0 %}
+    <div class="grid">
+      {% for c in cards %}
+        <article class="card">
+          <div class="card__top">
+            <div>
+              <div class="card__title">{{ c.title }}</div>
+              <div class="muted small">/c/{{ c.id }}</div>
+            </div>
+            <a class="btn btn-small" href="{{ url_for('card_view', card_id=c.id) }}">Открыть</a>
+          </div>
+          {% if c.description %}
+            <div class="card__desc">{{ c.description[:220] }}{% if c.description|length > 220 %}…{% endif %}</div>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty">Пока нет карточек.</div>
+  {% endif %}
+{% endblock %}
