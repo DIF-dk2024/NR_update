@@ -4,11 +4,37 @@
     <div class="pagehead">
       <div>
         <h1 class="h1">Админ • Карточки</h1>
-        <div class="muted small">Создавай новые материалы и редактируй существующие.</div>
+        <div class="muted small">Создание карточки — прямо здесь, без отдельной страницы.</div>
       </div>
-      <a class="btn btn-primary btn-small" href="{{ url_for('admin_card_new') }}">+ Новая карточка</a>
     </div>
   </section>
+
+  <form class="form" method="post" enctype="multipart/form-data">
+    <label class="label">Раздел</label>
+    <select class="input" name="section">
+      <option value="telegram">Подписаться в Telegram</option>
+      <option value="analytics" selected>Эксклюзивная Аналитика</option>
+      <option value="course">Купить Курс</option>
+    </select>
+
+    <label class="label">Название</label>
+    <input class="input" type="text" name="title" maxlength="120" required>
+
+    <label class="label">Описание</label>
+    <textarea class="textarea" name="description" rows="5" maxlength="6000"></textarea>
+
+    <label class="label">Ссылка (URL)</label>
+    <input class="input" type="text" name="link_url" placeholder="t.me/..., instagram.com/..., https://..., /cards">
+
+    <label class="label">Добавить файлы / видео (можно несколько)</label>
+    <input class="input" type="file" name="files" multiple>
+
+    <div class="row">
+      <button class="btn btn-primary" type="submit">Создать карточку</button>
+    </div>
+  </form>
+
+  <hr class="hr">
 
   {% if cards and cards|length > 0 %}
     <div class="grid">
@@ -17,17 +43,17 @@
           <div class="card__top">
             <div>
               <div class="card__title">{{ c.title }}</div>
-              <div class="muted small">/c/{{ c.id }}</div>
+              <div class="muted small">Раздел: {{ c.section }} • /c/{{ c.id }}</div>
             </div>
             <div class="row">
-              <a class="btn btn-small" href="{{ url_for('card_view', card_id=c.id) }}">Открыть</a>
               <a class="btn btn-small" href="{{ url_for('admin_card_edit', card_id=c.id) }}">Редактировать</a>
+              <a class="btn btn-small" href="{{ url_for('card_view', card_id=c.id) }}">Открыть</a>
             </div>
           </div>
         </article>
       {% endfor %}
     </div>
   {% else %}
-    <div class="empty">Пока нет карточек. Нажми «Новая карточка».</div>
+    <div class="empty">Пока нет карточек.</div>
   {% endif %}
 {% endblock %}

@@ -1,10 +1,149 @@
 {% extends "base.html" %}
 {% block content %}
+
   <section class="hero">
     <div class="hero__buttons">
-      <a class="btn btn-primary btn-hero" href="{{ url_for('page_view', slug='telegram') }}">Подписаться в Telegram</a>
-      <a class="btn btn-primary btn-hero" href="{{ url_for('page_view', slug='analytics') }}">Эксклюзивная Аналитика</a>
-      <a class="btn btn-primary btn-hero" href="{{ url_for('page_view', slug='course') }}">Купить Курс</a>
+      <button class="btn btn-primary btn-hero" type="button" data-open="telegram">Подписаться в Telegram</button>
+      <button class="btn btn-primary btn-hero" type="button" data-open="analytics">Эксклюзивная Аналитика</button>
+      <button class="btn btn-primary btn-hero" type="button" data-open="course">Купить Курс</button>
     </div>
   </section>
+
+  <section class="section" id="inline-sections" style="display:none">
+    {% for slug, block in sections.items() %}
+      {% set page = block.page %}
+      {% set cards = block.cards %}
+      <div class="inline-panel" data-panel="{{ slug }}" style="display:none">
+        <div class="pagehead">
+          <div>
+            <h1 class="h1">{{ page.title if page else slug }}</h1>
+            {% if page and page.updated_at %}
+              <div class="muted small">Обновлено: {{ page.updated_at }}</div>
+            {% endif %}
+          </div>
+          <div class="row">
+            <button class="btn btn-small" type="button" onclick="closePanel()">Закрыть</button>
+            {% if is_admin and page %}
+              <a class="btn btn-small" href="{{ url_for('admin_page_edit', slug=page.slug) }}">Редактировать</a>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if page and page.description %}
+          <div class="card__desc">{{ page.description }}</div>
+        {% endif %}
+
+        {% if page and page.link_url %}
+          <div class="links">
+            <a class="btn" href="{{ page.link_url }}" target="_blank" rel="noopener">Открыть ссылку</a>
+            <div class="muted small">{{ page.link_url }}</div>
+          </div>
+        {% endif %}
+
+        {% if page and page.files and page.files|length > 0 %}
+          <div class="attachments">
+            {% for f in page.files %}
+              {% set ext = f.ext|lower %}
+              {% if ext in ["jpg","jpeg","png","gif","webp"] %}
+                <a class="att att-img" href="{{ f.url }}" target="_blank" rel="noopener">
+                  <img src="{{ f.url }}" alt="{{ f.name }}">
+                </a>
+              {% elif ext in ["mp4","webm","mov"] %}
+                <div class="att att-video">
+                  <video controls preload="metadata" src="{{ f.url }}"></video>
+                  <div class="att__name">{{ f.name }}</div>
+                </div>
+              {% else %}
+                <a class="att att-file" href="{{ f.url }}" target="_blank" rel="noopener">
+                  <span class="att__icon">⬇</span>
+                  <span class="att__name">{{ f.name }}</span>
+                </a>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <hr class="hr">
+
+        <h2 class="h2">Материалы</h2>
+
+        {% if cards and cards|length > 0 %}
+          <div class="accordion">
+            {% for c in cards %}
+              <details class="acc">
+                <summary class="acc__sum">
+                  <span class="acc__title">{{ c.title }}</span>
+                  {% if is_admin %}
+                    <a class="btn btn-small" href="{{ url_for('admin_card_edit', card_id=c.id) }}" onclick="event.stopPropagation()">Редактировать</a>
+                  {% endif %}
+                </summary>
+
+                {% if c.description %}
+                  <div class="card__desc">{{ c.description }}</div>
+                {% endif %}
+
+                {% if c.link_url %}
+                  <div class="links">
+                    <a class="btn" href="{{ c.link_url }}" target="_blank" rel="noopener">Открыть ссылку</a>
+                    <div class="muted small">{{ c.link_url }}</div>
+                  </div>
+                {% endif %}
+
+                {% if c.files and c.files|length > 0 %}
+                  <div class="attachments">
+                    {% for f in c.files %}
+                      {% set ext = f.ext|lower %}
+                      {% if ext in ["jpg","jpeg","png","gif","webp"] %}
+                        <a class="att att-img" href="{{ f.url }}" target="_blank" rel="noopener">
+                          <img src="{{ f.url }}" alt="{{ f.name }}">
+                        </a>
+                      {% elif ext in ["mp4","webm","mov"] %}
+                        <div class="att att-video">
+                          <video controls preload="metadata" src="{{ f.url }}"></video>
+                          <div class="att__name">{{ f.name }}</div>
+                        </div>
+                      {% else %}
+                        <a class="att att-file" href="{{ f.url }}" target="_blank" rel="noopener">
+                          <span class="att__icon">⬇</span>
+                          <span class="att__name">{{ f.name }}</span>
+                        </a>
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="muted small">Вложений нет.</div>
+                {% endif %}
+              </details>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty">Пока нет материалов в этом разделе.</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </section>
+
+  <script>
+    function openPanel(slug) {
+      const wrap = document.getElementById("inline-sections");
+      if (wrap) wrap.style.display = "block";
+
+      document.querySelectorAll("[data-panel]").forEach(el => {
+        el.style.display = (el.getAttribute("data-panel") === slug) ? "block" : "none";
+      });
+
+      const shown = document.querySelector('[data-panel="'+slug+'"]');
+      if (shown) shown.scrollIntoView({behavior:"smooth", block:"start"});
+    }
+
+    function closePanel() {
+      const wrap = document.getElementById("inline-sections");
+      if (wrap) wrap.style.display = "none";
+    }
+
+    document.querySelectorAll("[data-open]").forEach(btn => {
+      btn.addEventListener("click", () => openPanel(btn.getAttribute("data-open")));
+    });
+  </script>
+
 {% endblock %}

@@ -17,6 +17,13 @@
   </section>
 
   <form class="form" method="post" enctype="multipart/form-data">
+<label class="label">Раздел</label>
+<select class="input" name="section">
+  <option value="telegram" {% if card.section=='telegram' %}selected{% endif %}>Подписаться в Telegram</option>
+  <option value="analytics" {% if card.section=='analytics' %}selected{% endif %}>Эксклюзивная Аналитика</option>
+  <option value="course" {% if card.section=='course' %}selected{% endif %}>Купить Курс</option>
+</select>
+
     <label class="label">Название</label>
     <input class="input" type="text" name="title" maxlength="120" value="{{ card.title }}" required>
 
