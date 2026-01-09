@@ -161,3 +161,14 @@ body{
 
 
 .fileinputs{display:grid;gap:10px}
+
+
+/* Inline panels + accordion */
+.inline-panel{margin-top:18px;padding:18px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(255,255,255,.02);box-shadow:var(--shadow)}
+.hr{border:0;border-top:1px solid var(--border);margin:18px 0}
+.accordion{display:grid;gap:10px}
+.acc{border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.02);overflow:hidden}
+.acc__sum{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 14px}
+.acc__sum::-webkit-details-marker{display:none}
+.acc__title{font-weight:650}
+.acc[open] .acc__sum{border-bottom:1px solid var(--border)}
