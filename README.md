@@ -21,11 +21,3 @@
 - Админ-панель страниц: `/admin/pages`
 
 ## Render env vars
-Обязательно:
-- `SECRET_KEY`
-- `ADMIN_PASSWORD`
-- `DATA_DIR=/var/data`
-- `UPLOADS_DIR=/var/data/uploads`
-
-Опционально:
-- `MAX_CONTENT_LENGTH` (лимит загрузки в байтах, например 31457280 для ~30MB)
